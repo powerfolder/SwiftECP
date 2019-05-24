@@ -1,10 +1,8 @@
-import XCGLogger
 import Foundation
+import QLog
 
 func buildInitialSPRequest(
-    protectedURL: URL,
-    log: XCGLogger?
-) -> URLRequest {
+    protectedURL: URL) -> URLRequest {
     // Create a request with the appropriate headers to trigger ECP on the SP.
     var request = URLRequest(url: protectedURL)
     request.setValue(
@@ -19,6 +17,6 @@ func buildInitialSPRequest(
         "identity",
         forHTTPHeaderField: "Accept-Encoding")
     request.timeoutInterval = 10
-    log?.debug("Built initial SP request.")
+    QLogDebug("Built initial SP request.")
     return request
 }

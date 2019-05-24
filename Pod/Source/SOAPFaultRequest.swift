@@ -1,19 +1,17 @@
-import AEXML_CU
+import AEXML
 import Alamofire
-import XCGLogger
 import Foundation
+import QLog
 
 // Something the spec wants but we don't need. Fire and forget.
 func sendSpSoapFaultRequest(
-    request: URLRequest,
-    log: XCGLogger?
-) {
+    request: URLRequest) {
     let request = Alamofire.request(request)
     request.responseString { response in
         if let value = response.result.value {
-            log?.debug(value)
+            QLogDebug(value)
         } else if let error = response.result.error {
-            log?.warning(error.localizedDescription)
+            QLogWarning(error.localizedDescription)
         }
     }
 }

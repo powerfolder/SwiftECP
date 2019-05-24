@@ -1,20 +1,18 @@
-import AEXML_CU
+import AEXML
 import Alamofire
-import AnyError
-import XCGLogger
 import Foundation
 import ReactiveSwift
+import QLog
 
 // swiftlint:disable:next todo
 // TODO: refactor this function, the length does smell
 // swiftlint:disable:next function_body_length
 func buildFinalSPRequest(
     body: AEXMLDocument,
-    idpRequestData: IdpRequestData,
-    log: XCGLogger?
+    idpRequestData: IdpRequestData
 ) throws -> URLRequest {
-    log?.debug("IDP SOAP response:")
-    log?.debug(body.xmlString(trimWhiteSpace: false, format: false))
+    QLogDebug("IDP SOAP response:")
+    QLogDebug(body.xml)
 
     guard
         let acuString = body.root["soap11:Header"]["ecp:Response"]
@@ -24,7 +22,7 @@ func buildFinalSPRequest(
         throw ECPError.assertionConsumerServiceURL
     }
 
-    log?.debug("Found AssertionConsumerServiceURL in IdP SOAP response.")
+    QLogDebug("Found AssertionConsumerServiceURL in IdP SOAP response.")
 
     /**
         Make a new SOAP envelope with the following:
@@ -52,7 +50,7 @@ func buildFinalSPRequest(
             URL: idpRequestData.responseConsumerURL,
             error: ECPError.security
         ) {
-            sendSpSoapFaultRequest(request: request, log: log)
+            sendSpSoapFaultRequest(request: request)
         }
         throw ECPError.security
     }
@@ -60,7 +58,7 @@ func buildFinalSPRequest(
     if let relay = idpRequestData.relayState {
         let header = envelope.addChild(name: "soap11:Header")
         header.addChild(relay)
-        log?.debug("Added RelayState to the SOAP header for the final SP request.")
+        QLogDebug("Added RelayState to the SOAP header for the final SP request.")
     }
 
     let extractedBody = body.root["soap11:Body"]
@@ -72,8 +70,8 @@ func buildFinalSPRequest(
         throw ECPError.soapGeneration
     }
 
-    log?.debug("Sending this SOAP to the SP:")
-    log?.debug(soapString)
+    QLogDebug("Sending this SOAP to the SP:")
+    QLogDebug(spSoapDocument.root.xml)
 
     var spReq = URLRequest(url: assertionConsumerServiceURL)
     spReq.httpMethod = "POST"
@@ -84,21 +82,19 @@ func buildFinalSPRequest(
     )
     spReq.timeoutInterval = 10
 
-    log?.debug("Built final SP request.")
+    QLogDebug("Built final SP request.")
     return spReq
 }
 
 func sendFinalSPRequest(
     document: AEXMLDocument,
-    idpRequestData: IdpRequestData,
-    log: XCGLogger?
-) -> SignalProducer<String, AnyError> {
+    idpRequestData: IdpRequestData
+) -> SignalProducer<String, Error> {
     return SignalProducer { observer, _ in
         do {
             let request = try buildFinalSPRequest(
                 body: document,
-                idpRequestData: idpRequestData,
-                log: log
+                idpRequestData: idpRequestData
             )
 
             let req = Alamofire.request(request)
@@ -108,13 +104,13 @@ func sendFinalSPRequest(
                     observer.send(value: value)
                     observer.sendCompleted()
                 case .failed(let error):
-                    observer.send(error: AnyError(cause: error))
+                    observer.send(error: error)
                 default:
                     break
                 }
             }
         } catch {
-            observer.send(error: AnyError(cause: error))
+            observer.send(error: error)
         }
     }
 }

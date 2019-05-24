@@ -1,7 +1,5 @@
-import AEXML_CU
+import AEXML
 import Alamofire
-import AnyError
-import XCGLogger
 import Foundation
 import ReactiveSwift
 
@@ -14,26 +12,23 @@ struct IdpRequestData {
 public func ECPLogin(
     protectedURL: URL,
     username: String,
-    password: String,
-    logger: XCGLogger? = nil
-    ) -> SignalProducer<String, AnyError> {
+    password: String
+    ) -> SignalProducer<String, Error> {
     return Alamofire.request(
-        buildInitialSPRequest(protectedURL: protectedURL, log: logger)
+        buildInitialSPRequest(protectedURL: protectedURL)
     )
     .responseXML()
     .flatMap(.concat) {
         sendIdpRequest(
             initialSpResponse: $0.value,
             username: username,
-            password: password,
-            log: logger
+            password: password
         )
     }
     .flatMap(.concat) {
         sendFinalSPRequest(
             document: $0.0.value,
-            idpRequestData: $0.1,
-            log: logger
+            idpRequestData: $0.1
         )
     }
 }

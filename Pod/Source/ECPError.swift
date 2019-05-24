@@ -1,7 +1,6 @@
 import Foundation
-import AnyError
 
-public enum ECPError: Error, AnyErrorConverter {
+public enum ECPError: Error {
     case extraction
     case emptyBody
     case soapGeneration

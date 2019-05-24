@@ -1,9 +1,8 @@
-import AEXML_CU
+import AEXML
 import Alamofire
-import AnyError
-import XCGLogger
 import Foundation
 import ReactiveSwift
+import QLog
 
 func basicAuthHeader(username: String, password: String) -> String? {
     let encodedUsernameAndPassword = ("\(username):\(password)")
@@ -21,16 +20,15 @@ func basicAuthHeader(username: String, password: String) -> String? {
 func buildIdpRequest(
     body: AEXMLDocument,
     username: String,
-    password: String,
-    log: XCGLogger?
+    password: String
 ) throws -> IdpRequestData {
-    log?.debug("Initial SP SOAP response:")
-    log?.debug(body.xmlCompact)
+    QLogDebug("Initial SP SOAP response:")
+    QLogDebug(body.xml)
 
     // Remove the XML signature
     // Disabled - not sure if this needs to be optional for some setups
     //    body.root["S:Body"]["samlp:AuthnRequest"]["ds:Signature"].removeFromParent()
-    //    log?.debug("Removed the XML signature from the SP SOAP response.")
+    //    QLogDebug("Removed the XML signature from the SP SOAP response.")
 
     // Store this so we can compare it against the AssertionConsumerServiceURL from the IdP
     let responseConsumerURLString = body.root["S:Header"]["paos:Request"]
@@ -43,16 +41,16 @@ func buildIdpRequest(
         throw ECPError.responseConsumerURL
     }
 
-    log?.debug("Found the ResponseConsumerURL in the SP SOAP response.")
+    QLogDebug("Found the ResponseConsumerURL in the SP SOAP response.")
 
     // Get the SP request's RelayState for later
     // This may or may not exist depending on the SP/IDP
     let relayState = body.root["S:Header"]["ecp:RelayState"].first
 
     if relayState != nil {
-        log?.debug("SP SOAP response contains RelayState.")
+        QLogDebug("SP SOAP response contains RelayState.")
     } else {
-        log?.warning("No RelayState present in the SP SOAP response.")
+        QLogDebug("No RelayState present in the SP SOAP response.")
     }
 
     // Get the IdP's URL
@@ -68,7 +66,7 @@ func buildIdpRequest(
         throw ECPError.idpExtraction
     }
 
-    log?.debug("Found IdP URL in the SP SOAP response.")
+    QLogDebug("Found IdP URL in the SP SOAP response.")
     // Make a new SOAP envelope with the SP's SOAP body only
     let body = body.root["S:Body"]
     let soapDocument = AEXMLDocument()
@@ -91,8 +89,8 @@ func buildIdpRequest(
         throw ECPError.missingBasicAuth
     }
 
-    log?.debug("Sending this SOAP to the IDP:")
-    log?.debug(soapString)
+    QLogDebug("Sending this SOAP to the IDP:")
+    QLogDebug(envelope.xml)
 
     var idpReq = URLRequest(url: idpEcpURL)
     idpReq.httpMethod = "POST"
@@ -112,10 +110,10 @@ func buildIdpRequest(
         forHTTPHeaderField: "Authorization"
     )
 
-    log?.debug(authorizationHeader)
+    QLogDebug(authorizationHeader)
     idpReq.timeoutInterval = 10
 
-    log?.debug("Built first IdP request.")
+    QLogDebug("Built first IdP request.")
 
     return IdpRequestData(
         request: idpReq,
@@ -127,16 +125,14 @@ func buildIdpRequest(
 func sendIdpRequest(
     initialSpResponse: AEXMLDocument,
     username: String,
-    password: String,
-    log: XCGLogger?
-) -> SignalProducer<(CheckedResponse<AEXMLDocument>, IdpRequestData), AnyError> {
+    password: String
+) -> SignalProducer<(CheckedResponse<AEXMLDocument>, IdpRequestData), Error> {
     return SignalProducer { observer, _ in
         do {
             let idpRequestData = try buildIdpRequest(
                 body: initialSpResponse,
                 username: username,
-                password: password,
-                log: log
+                password: password
             )
 
             let req = Alamofire.request(idpRequestData.request)
@@ -147,22 +143,22 @@ func sendIdpRequest(
                     let stringResponse = value.0
 
                     guard case 200 ... 299 = stringResponse.response.statusCode else {
-                        log?.debug(
+                        QLogDebug(
                             "Received \(stringResponse.response.statusCode) response from IdP"
                         )
-                        observer.send(error: ECPError.idpRequestFailed.asAnyError())
+                        observer.send(error: ECPError.idpRequestFailed)
                         break
                     }
 
                     guard let responseData = stringResponse.value
                         .data(using: String.Encoding.utf8)
                     else {
-                        observer.send(error: ECPError.xmlSerialization.asAnyError())
+                        observer.send(error: ECPError.xmlSerialization)
                         break
                     }
 
                     guard let responseXML = try? AEXMLDocument(xml: responseData) else {
-                        observer.send(error: ECPError.xmlSerialization.asAnyError())
+                        observer.send(error: ECPError.xmlSerialization)
                         break
                     }
 
@@ -181,7 +177,7 @@ func sendIdpRequest(
                 }
             }
         } catch {
-            observer.send(error: AnyError(cause: error))
+            observer.send(error: error)
         }
     }
 }

@@ -1,6 +1,5 @@
-import AEXML_CU
+import AEXML
 import Alamofire
-import AnyError
 import Foundation
 import ReactiveSwift
 
@@ -72,19 +71,19 @@ extension DataRequest {
         )
     }
 
-    public func responseXML() -> SignalProducer<CheckedResponse<AEXMLDocument>, AnyError> {
+    public func responseXML() -> SignalProducer<CheckedResponse<AEXMLDocument>, Error> {
         return SignalProducer { observer, _ in
             self.responseXML { response in
                 if let error = response.result.error {
-                    return observer.send(error: AnyError(cause: error))
+                    return observer.send(error: error)
                 }
 
                 guard let document = response.result.value else {
-                    return observer.send(error: AlamofireRACError.xmlSerialization.asAnyError())
+                    return observer.send(error: AlamofireRACError.xmlSerialization)
                 }
 
                 guard let request = response.request, let response = response.response else {
-                    return observer.send(error: AlamofireRACError.incompleteResponse.asAnyError())
+                    return observer.send(error: AlamofireRACError.incompleteResponse)
                 }
 
                 observer.send(
@@ -99,19 +98,19 @@ extension DataRequest {
 
     public func responseString(
         errorOnNil: Bool = true
-        ) -> SignalProducer<CheckedResponse<String>, AnyError> {
+        ) -> SignalProducer<CheckedResponse<String>, Error> {
         return SignalProducer { observer, _ in
             self.responseStringEmptyAllowed { response in
                 if let error = response.result.error {
-                    return observer.send(error: AnyError(cause: error))
+                    return observer.send(error: error)
                 }
 
                 if errorOnNil && response.result.value?.count == 0 {
-                    return observer.send(error: AlamofireRACError.incompleteResponse.asAnyError())
+                    return observer.send(error: AlamofireRACError.incompleteResponse)
                 }
 
                 guard let req = response.request, let resp = response.response else {
-                    return observer.send(error: AlamofireRACError.incompleteResponse.asAnyError())
+                    return observer.send(error: AlamofireRACError.incompleteResponse)
                 }
 
                 observer.send(
@@ -125,7 +124,7 @@ extension DataRequest {
     }
 }
 
-public enum AlamofireRACError: Error, AnyErrorConverter {
+public enum AlamofireRACError: Error {
     case network(error: Error?)
     case dataSerialization(error: Error?)
     case xmlSerialization
