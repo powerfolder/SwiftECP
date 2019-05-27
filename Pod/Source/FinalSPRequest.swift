@@ -4,24 +4,14 @@ import Foundation
 import ReactiveSwift
 import QLog
 
-// swiftlint:disable:next todo
-// TODO: refactor this function, the length does smell
-// swiftlint:disable:next function_body_length
-func buildFinalSPRequest(
-    body: AEXMLDocument,
-    idpRequestData: IdpRequestData
-) throws -> URLRequest {
+func buildFinalSPRequest(body: AEXMLDocument, idpRequestData: IdpRequestData) throws -> URLRequest {
     QLogDebug("IDP SOAP response:")
     QLogDebug(body.xml)
-
-    guard
-        let acuString = body.root["soap11:Header"]["ecp:Response"]
-            .attributes["AssertionConsumerServiceURL"],
-        let assertionConsumerServiceURL = URL(string: acuString)
-    else {
+    guard let acuString = body.root["soap11:Header"]["ecp:Response"].attributes["AssertionConsumerServiceURL"],
+          let assertionConsumerServiceURL = URL(string: acuString)
+            else {
         throw ECPError.assertionConsumerServiceURL
     }
-
     QLogDebug("Found AssertionConsumerServiceURL in IdP SOAP response.")
 
     /**
@@ -37,19 +27,13 @@ func buildFinalSPRequest(
         "xmlns:soap11": "http://schemas.xmlsoap.org/soap/envelope/"
     ]
     let envelope = spSoapDocument.addChild(
-        name: "soap11:Envelope",
-        attributes: spSoapAttributes
+            name: "soap11:Envelope",
+            attributes: spSoapAttributes
     )
 
     // Bail out if these don't match
-    guard
-        idpRequestData.responseConsumerURL.absoluteString ==
-        assertionConsumerServiceURL.absoluteString
-    else {
-        if let request = buildSoapFaultRequest(
-            URL: idpRequestData.responseConsumerURL,
-            error: ECPError.security
-        ) {
+    guard idpRequestData.responseConsumerURL.absoluteString == assertionConsumerServiceURL.absoluteString else {
+        if let request = buildSoapFaultRequest(URL: idpRequestData.responseConsumerURL, error: ECPError.security) {
             sendSpSoapFaultRequest(request: request)
         }
         throw ECPError.security
@@ -63,42 +47,30 @@ func buildFinalSPRequest(
 
     let extractedBody = body.root["soap11:Body"]
     envelope.addChild(extractedBody)
-
     let soapString = spSoapDocument.root.xmlString(trimWhiteSpace: false, format: false)
-
     guard let soapData = soapString.data(using: String.Encoding.utf8) else {
         throw ECPError.soapGeneration
     }
-
     QLogDebug("Sending this SOAP to the SP:")
     QLogDebug(spSoapDocument.root.xml)
 
     var spReq = URLRequest(url: assertionConsumerServiceURL)
     spReq.httpMethod = "POST"
     spReq.httpBody = soapData
-    spReq.setValue(
-        "application/vnd.paos+xml",
-        forHTTPHeaderField: "Content-Type"
-    )
+    spReq.setValue("application/vnd.paos+xml", forHTTPHeaderField: "Content-Type")
     spReq.timeoutInterval = 10
-
     QLogDebug("Built final SP request.")
     return spReq
 }
 
-func sendFinalSPRequest(
-    document: AEXMLDocument,
-    idpRequestData: IdpRequestData
-) -> SignalProducer<String, Error> {
+func sendFinalSPRequest(document: AEXMLDocument, idpRequestData: IdpRequestData) -> SignalProducer<String, Error> {
     return SignalProducer { observer, _ in
         do {
-            let request = try buildFinalSPRequest(
-                body: document,
-                idpRequestData: idpRequestData
-            )
-
+            let request = try buildFinalSPRequest(body: document, idpRequestData: idpRequestData)
             let req = Alamofire.request(request)
-            req.responseString(errorOnNil: false).map { $0.value }.start { event in
+            req.responseString(errorOnNil: false).map {
+                $0.value
+            }.start { event in
                 switch event {
                 case .value(let value):
                     observer.send(value: value)

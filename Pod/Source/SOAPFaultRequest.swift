@@ -4,8 +4,7 @@ import Foundation
 import QLog
 
 // Something the spec wants but we don't need. Fire and forget.
-func sendSpSoapFaultRequest(
-    request: URLRequest) {
+func sendSpSoapFaultRequest(request: URLRequest) {
     let request = Alamofire.request(request)
     request.responseString { response in
         if let value = response.result.value {
@@ -18,13 +17,8 @@ func sendSpSoapFaultRequest(
 
 func buildSoapFaultBody(error: Error) -> Data? {
     let soapDocument = AEXMLDocument()
-    let soapAttribute = [
-        "xmlns:SOAP-ENV": "http://schemas.xmlsoap.org/soap/envelope/"
-    ]
-    let envelope = soapDocument.addChild(
-        name: "SOAP-ENV:Envelope",
-        attributes: soapAttribute
-    )
+    let soapAttribute = ["xmlns:SOAP-ENV": "http://schemas.xmlsoap.org/soap/envelope/"]
+    let envelope = soapDocument.addChild(name: "SOAP-ENV:Envelope", attributes: soapAttribute)
     let body = envelope.addChild(name: "SOAP-ENV:Body")
     let fault = body.addChild(name: "SOAP-ENV:Fault")
     fault.addChild(name: "faultcode", value: String(describing: error))
@@ -37,12 +31,8 @@ func buildSoapFaultRequest(URL: URL, error: Error) -> URLRequest? {
         var request = URLRequest(url: URL)
         request.httpMethod = "POST"
         request.httpBody = body
-        request.setValue(
-            "application/vnd.paos+xml",
-            forHTTPHeaderField: "Content-Type"
-        )
+        request.setValue("application/vnd.paos+xml", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 10
-
         return request
     }
     return nil

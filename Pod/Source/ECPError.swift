@@ -1,6 +1,7 @@
 import Foundation
 
 public enum ECPError: Error {
+
     case extraction
     case emptyBody
     case soapGeneration
@@ -50,7 +51,6 @@ public enum ECPError: Error {
         case .idpRequestFailed:
             return "The password you entered is incorrect. Please try again."
         default:
-            // swiftlint:disable:next line_length
             return "An unknown error occurred. Please let us know how you arrived at this error and we will fix the problem as soon as possible."
         }
     }
@@ -83,4 +83,5 @@ public enum ECPError: Error {
             return "Unable to serialize response to XML."
         }
     }
+
 }
