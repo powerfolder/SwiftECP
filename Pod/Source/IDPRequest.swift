@@ -12,7 +12,7 @@ func basicAuthHeader(username: String, password: String) -> String? {
     return "Basic \(encodedUsernameAndPassword!)"
 }
 
-func buildIdpRequest(body: AEXMLDocument, username: String, password: String) throws -> IdpRequestData {
+func buildIdpRequest(body: AEXMLDocument, username: String, password: String, idpEcpURL: URL) throws -> IdpRequestData {
     QLogDebug("Initial SP SOAP response:")
     QLogDebug(body.xml)
 
@@ -46,8 +46,7 @@ func buildIdpRequest(body: AEXMLDocument, username: String, password: String) th
     guard let
           idp = idpURLString,
           let idpURL = URL(string: idp),
-          let idpHost = idpURL.host,
-          let idpEcpURL = URL(string: "https://\(idpHost)/idp/profile/SAML2/SOAP/ECP")
+          let idpHost = idpURL.host
             else {
         throw ECPError.idpExtraction
     }
@@ -85,10 +84,10 @@ func buildIdpRequest(body: AEXMLDocument, username: String, password: String) th
     return IdpRequestData(request: idpReq, responseConsumerURL: responseConsumerURL, relayState: relayState)
 }
 
-func sendIdpRequest(initialSpResponse: AEXMLDocument, username: String, password: String) -> SignalProducer<(CheckedResponse<AEXMLDocument>, IdpRequestData), Error> {
+func sendIdpRequest(initialSpResponse: AEXMLDocument, username: String, password: String, idpEcpURL: URL) -> SignalProducer<(CheckedResponse<AEXMLDocument>, IdpRequestData), Error> {
     return SignalProducer { observer, _ in
         do {
-            let idpRequestData = try buildIdpRequest(body: initialSpResponse, username: username, password: password)
+            let idpRequestData = try buildIdpRequest(body: initialSpResponse, username: username, password: password, idpEcpURL: idpEcpURL)
             let req = Alamofire.request(idpRequestData.request)
             req.responseString().map {
                 ($0, idpRequestData)
