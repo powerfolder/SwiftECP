@@ -41,17 +41,6 @@ func buildIdpRequest(body: AEXMLDocument, username: String, password: String, id
         QLogDebug("No RelayState present in the SP SOAP response.")
     }
 
-    // Get the IdP's URL
-    let idpURLString = body.root["S:Body"]["samlp:AuthnRequest"]["samlp:Scoping"]["samlp:IDPList"]["samlp:IDPEntry"].attributes["ProviderID"]
-    guard let
-          idp = idpURLString,
-          let idpURL = URL(string: idp),
-          let idpHost = idpURL.host
-            else {
-        throw ECPError.idpExtraction
-    }
-
-    QLogDebug("Found IdP URL in the SP SOAP response.")
     // Make a new SOAP envelope with the SP's SOAP body only
     let body = body.root["S:Body"]
     let soapDocument = AEXMLDocument()
