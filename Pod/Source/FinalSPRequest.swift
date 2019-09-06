@@ -7,7 +7,11 @@ import QLog
 func buildFinalSPRequest(body: AEXMLDocument, idpRequestData: IdpRequestData) throws -> URLRequest {
     QLogDebug("IDP SOAP response:")
     QLogDebug(body.xml)
-    guard let acuString = body.root["soap11:Header"]["ecp:Response"].attributes["AssertionConsumerServiceURL"],
+    guard let soapNamespace = body.root.name.split(separator: ":").first?.description else {
+        QLogError("Cannot get SOAP namespace")
+        throw ECPError.soapGeneration
+    }
+    guard let acuString = body.root["\(soapNamespace):Header"]["ecp:Response"].attributes["AssertionConsumerServiceURL"],
           let assertionConsumerServiceURL = URL(string: acuString)
             else {
         throw ECPError.assertionConsumerServiceURL
@@ -24,10 +28,10 @@ func buildFinalSPRequest(body: AEXMLDocument, idpRequestData: IdpRequestData) th
     // XML namespaces are just...lovely
     let spSoapAttributes = [
         "xmlns:S": "http://schemas.xmlsoap.org/soap/envelope/",
-        "xmlns:soap11": "http://schemas.xmlsoap.org/soap/envelope/"
+        "xmlns:\(soapNamespace)": "http://schemas.xmlsoap.org/soap/envelope/"
     ]
     let envelope = spSoapDocument.addChild(
-            name: "soap11:Envelope",
+            name: "\(soapNamespace):Envelope",
             attributes: spSoapAttributes
     )
 
@@ -40,12 +44,12 @@ func buildFinalSPRequest(body: AEXMLDocument, idpRequestData: IdpRequestData) th
     }
 
     if let relay = idpRequestData.relayState {
-        let header = envelope.addChild(name: "soap11:Header")
+        let header = envelope.addChild(name: "\(soapNamespace):Header")
         header.addChild(relay)
         QLogDebug("Added RelayState to the SOAP header for the final SP request.")
     }
 
-    let extractedBody = body.root["soap11:Body"]
+    let extractedBody = body.root["\(soapNamespace):Body"]
     envelope.addChild(extractedBody)
     let soapString = spSoapDocument.root.xmlString(trimWhiteSpace: false, format: false)
     guard let soapData = soapString.data(using: String.Encoding.utf8) else {

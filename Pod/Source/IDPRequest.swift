@@ -5,7 +5,7 @@ import ReactiveSwift
 import QLog
 
 func basicAuthHeader(username: String, password: String) -> String? {
-    let encodedUsernameAndPassword = ("\(username):\(password)").data(using: .ascii)?.base64EncodedString()
+    let encodedUsernameAndPassword = ("\(username):\(password)").data(using: .utf8)?.base64EncodedString()
     guard encodedUsernameAndPassword != nil else {
         return nil
     }
