@@ -47,7 +47,7 @@ func buildIdpRequest(body: AEXMLDocument, username: String, password: String, id
     let soapAttributes = ["xmlns:S": "http://schemas.xmlsoap.org/soap/envelope/"]
     let envelope = soapDocument.addChild(name: "S:Envelope", attributes: soapAttributes)
     envelope.addChild(body)
-    let soapString = envelope.xmlString(trimWhiteSpace: false, format: false)
+    let soapString = envelope.xml //(trimWhiteSpace: false, format: false)
     guard let soapData = soapString.data(using: String.Encoding.utf8) else {
         throw ECPError.soapGeneration
     }
@@ -77,7 +77,7 @@ func sendIdpRequest(initialSpResponse: AEXMLDocument, username: String, password
     return SignalProducer { observer, _ in
         do {
             let idpRequestData = try buildIdpRequest(body: initialSpResponse, username: username, password: password, idpEcpURL: idpEcpURL)
-            let req = Alamofire.request(idpRequestData.request)
+            let req = AF.request(idpRequestData.request)
             req.responseString().map {
                 ($0, idpRequestData)
             }.start { event in

@@ -51,7 +51,7 @@ func buildFinalSPRequest(body: AEXMLDocument, idpRequestData: IdpRequestData) th
 
     let extractedBody = body.root["\(soapNamespace):Body"]
     envelope.addChild(extractedBody)
-    let soapString = spSoapDocument.root.xmlString(trimWhiteSpace: false, format: false)
+    let soapString = spSoapDocument.root.xml//String(trimWhiteSpace: false, format: false)
     guard let soapData = soapString.data(using: String.Encoding.utf8) else {
         throw ECPError.soapGeneration
     }
@@ -71,7 +71,7 @@ func sendFinalSPRequest(document: AEXMLDocument, idpRequestData: IdpRequestData)
     return SignalProducer { observer, _ in
         do {
             let request = try buildFinalSPRequest(body: document, idpRequestData: idpRequestData)
-            let req = Alamofire.request(request)
+            let req = AF.request(request)
             req.responseString(errorOnNil: false).map {
                 $0.value
             }.start { event in

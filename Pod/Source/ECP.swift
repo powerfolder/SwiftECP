@@ -12,7 +12,7 @@ struct IdpRequestData {
 }
 
 public func ECPLogin(protectedURL: URL, username: String, password: String, idpEcpURL: URL) -> SignalProducer<String, Error> {
-    return Alamofire.request(buildInitialSPRequest(protectedURL: protectedURL))
+    return AF.request(buildInitialSPRequest(protectedURL: protectedURL))
             .responseXML()
             .flatMap(.concat) {
                 sendIdpRequest(initialSpResponse: $0.value, username: username, password: password, idpEcpURL: idpEcpURL)

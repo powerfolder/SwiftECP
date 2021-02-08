@@ -5,11 +5,12 @@ import QLog
 
 // Something the spec wants but we don't need. Fire and forget.
 func sendSpSoapFaultRequest(request: URLRequest) {
-    let request = Alamofire.request(request)
+    let request = AF.request(request)
     request.responseString { response in
-        if let value = response.result.value {
+        switch response.result {
+        case .success(let value):
             QLogDebug(value)
-        } else if let error = response.result.error {
+        case .failure(let error):
             QLogWarning(error.localizedDescription)
         }
     }
@@ -23,7 +24,7 @@ func buildSoapFaultBody(error: Error) -> Data? {
     let fault = body.addChild(name: "SOAP-ENV:Fault")
     fault.addChild(name: "faultcode", value: String(describing: error))
     fault.addChild(name: "faultstring", value: error.localizedDescription)
-    return soapDocument.xmlString(trimWhiteSpace: false, format: false).data(using: .utf8)
+    return soapDocument.xml.data(using: .utf8)//(trimWhiteSpace: false, format: false).data(using: .utf8)
 }
 
 func buildSoapFaultRequest(URL: URL, error: Error) -> URLRequest? {
